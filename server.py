@@ -56,9 +56,9 @@ resolver = rules.Resolver()
 resolver.add_rule(rules.DNS_rule(".*", dns_list.electro))
 
 
-def dns_response(data):
+def dns_response(request):
 	global resolver
-	request = DNSRecord.parse(data)
+
 
 	#print(request)
 
@@ -70,7 +70,8 @@ def dns_response(data):
 	qt = QTYPE[qtype]
 
 	if qt != 'A' :
-		return reply.pack()
+		logger.info(f"{qt} is not supported currenty sending empty response")
+		return reply.pack(), None
 
 	qn = qn[0:len(qn) - 1]
 	#for name, rrs in records.items():
@@ -78,12 +79,11 @@ def dns_response(data):
 	# for rdata in rrs:
 	# 	rqt = rdata.__class__.__name__
 	#if qt in ['*', rqt]:
-	resolution = A("1.2.3.4")
-	logger.debug(f"")
+	resolution = A("0.0.0.0")
 	try:
 		resolution = A(resolver.resolve_domain_name(qn, qt))
 	except:
-		return reply.pack()
+		return reply.pack(), None
 
 	reply.add_answer(RR(rname=qname, rtype=getattr(QTYPE, qt), rclass=1, ttl=TTL, rdata=resolution))#here
 	logger.debug(f"{qn} -> {resolution}")
@@ -92,7 +92,7 @@ def dns_response(data):
 
 	#print("---- Reply:\n", reply)
 
-	return reply.pack()
+	return reply.pack(),resolution
 
 
 class BaseRequestHandler(socketserver.BaseRequestHandler):
@@ -109,8 +109,11 @@ class BaseRequestHandler(socketserver.BaseRequestHandler):
 		#                                      self.client_address[1]))
 		try:
 			data = self.get_data()
+			request = DNSRecord.parse(data)
 			#print(len(data), data)  # repr(data).replace('\\x', '')[1:-1]
-			self.send_data(dns_response(data))
+			(resolution, ip) = dns_response(request)
+			logger.info(f"request from {self.client_address} domain name :{str(request.q.qname)}, question type : {QTYPE[request.q.qtype]} -> {ip if ip is not None else str()}")
+			self.send_data(resolution)
 		except Exception:
 			traceback.print_exc(file=sys.stderr)
 
