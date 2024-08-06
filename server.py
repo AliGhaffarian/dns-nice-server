@@ -31,7 +31,7 @@ class DomainName(str):
 
 
 D = DomainName('example.com.')
-IP = '127.0.0.1'
+IP = '0.0.0.0'
 TTL = 60 * 5
 PORT = 53
 soa_record = SOA(
@@ -69,9 +69,9 @@ def dns_response(request):
 	qtype = request.q.qtype
 	qt = QTYPE[qtype]
 
-	if qt != 'A' :
-		logger.info(f"{qt} is not supported currenty sending empty response")
-		return reply.pack(), None
+	#if qt != 'A' :
+		#logger.info(f"{qt} is not supported currenty sending empty response")
+		#return reply.pack(), None
 
 	qn = qn[0:len(qn) - 1]
 	#for name, rrs in records.items():
@@ -81,7 +81,7 @@ def dns_response(request):
 	#if qt in ['*', rqt]:
 	resolution = A("0.0.0.0")
 	try:
-		resolution = A(resolver.resolve_domain_name(qn, qt))
+		resolution = eval(compile(f"{qt}(resolver.resolve_domain_name(qn, qt))", "", "eval"))
 	except:
 		return reply.pack(), None
 
