@@ -1,0 +1,2 @@
+dnslib==0.9.25
+dnspython==2.6.1
